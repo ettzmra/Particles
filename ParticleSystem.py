@@ -28,21 +28,26 @@ class MovingObj:
         else:
             self.dy = 0
 
-    def magnitude(self, targetx, targety):  # distance between two points
+    def distance_to(self, targetx, targety):  # distance between two points
         self.sub(targetx, targety)
-        self.distance = sqrt((self.diffx ** 2) + (self.diffy ** 2))
+        distance = sqrt((self.diffx ** 2) + (self.diffy ** 2))
+        return distance
 
     def out_of_borders(self, screenw, screenh, sink_list=None):
         if sink_list is not None:
             for sink in sink_list:
-                self.magnitude(sink.x, sink.y)
-                if self.distance < sink.mass:
+                dist= self.distance_to(sink.x, sink.y)
+                if dist < sink.mass:
                     self.x, self.y = self.startpoint
                     return True
-        if 0 > self.x > screenw:
+        if 0 >= self.x or self.x >= screenw:
+            if 0 >= self.x: self.x = 0
+            else: self.x = screenw
             self.vx = -self.vx
             return True
-        if 0 > self.y > screenh:
+        if 0 > self.y or self.y > screenh:
+            if 0 >= self.y: self.y = 0
+            else: self.y = screenh
             self.vy = -self.vy
             return True
         return False
@@ -111,8 +116,8 @@ while 1:
 
     for sink in sinks:
         for particle in particle_pool:
-            particle.magnitude(sink.x, sink.y)
-            force = 10.0 * (sink.mass / particle.distance ** 2.0)
+            distance = particle.distance_to(sink.x, sink.y)
+            force = 10.0 * (sink.mass / distance ** 2.0)
             particle.find_direction(sink.x, sink.y)
             particle.vx += particle.dx * force
             particle.vy += particle.dy * force
@@ -125,9 +130,10 @@ while 1:
         particle.add_velocity()
 
     for sink in sinks:
+        sink.out_of_borders(width, height)
         pygame.draw.circle(screen, RED, (int(sink.x), int(sink.y)), sink.mass, 1)
         sink.add_velocity()
-        sink.out_of_borders(width, height)
+
 
 
     pygame.display.update()
