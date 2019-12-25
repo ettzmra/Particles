@@ -1,5 +1,6 @@
 import pygame, sys, random
 from math import sqrt
+import numpy as np
 
 class MovingObj:
     def __init__(self, x, y, vx, vy):
@@ -66,7 +67,7 @@ class Emitter(MovingObj):
 
 
 class Particle(MovingObj):
-    def __init__(self, x, y, vx, vy):
+    def __init__(self, x, y, vx=0, vy=0):
         super().__init__(x, y, vx, vy)
 
 
@@ -88,11 +89,11 @@ emitters = []
 particle_pool = []
 sinks = []
 
-emitters.append(Emitter(100, 100, 20))
+emitters.append(Emitter(100, 100, 10, vx=0.1, vy=0.1))
 
-sinks.append(Sink(100, 300, 20, 0.0005, -0.0004))
-sinks.append(Sink(300, 100, 20, -0.0004, 0.0005))
-sinks.append(Sink(300, 300, 10, -0.0004, -0.0004))
+sinks.append(Sink(100, 300, 20, 0.1, -0.1))
+sinks.append(Sink(300, 100, 20, -0.2, 0.2))
+sinks.append(Sink(300, 300, 10, -0.15, -0.15))
 
 while 1:
     for event in pygame.event.get():
@@ -103,24 +104,30 @@ while 1:
     for emitter in emitters:
         new_particles = emitter.emit()
         particle_pool += new_particles
+        pygame.draw.circle(screen, BLACK, (int(emitter.x), int(emitter.y)), emitter.amount, 1)
+        pygame.draw.line(screen, BLACK, (emitter.x, emitter.y), (emitter.x + (emitter.dx * 5), emitter.y + (emitter.dy * 5)), 2)
+        emitter.add_velocity()
+        emitter.out_of_borders(width, height, sinks)
 
-        for sink in sinks:
-            for particle in particle_pool:
-                particle.magnitude(sink.x, sink.y)
-                force = 10.0 * (sink.mass / particle.distance ** 2.0)
-                particle.find_direction(sink.x, sink.y)
-                particle.vx += particle.dx * force
-                particle.vy += particle.dy * force
-                pygame.draw.line(screen, BLACK, (particle.x, particle.y),(particle.x + (particle.vx * 5), particle.y + (particle.vy * 5)), 2)
-                particle.add_velocity()
-                if particle.out_of_borders(width, height, sinks):
-                    particle_pool.remove(particle)
-                pygame.draw.circle(screen, RED, (int(sink.x), int(sink.y)), sink.mass, 1)
-                sink.add_velocity()
-                sink.out_of_borders(width, height)
-                pygame.draw.circle(screen, BLACK, (int(emitter.x), int(emitter.y)), emitter.amount, 1)
-                pygame.draw.line(screen, BLACK, (emitter.x, emitter.y), (emitter.x + (emitter.dx * 5), emitter.y + (emitter.dy * 5)), 2)
-                emitter.add_velocity()
-                emitter.out_of_borders(width, height, sinks)
+    for sink in sinks:
+        for particle in particle_pool:
+            particle.magnitude(sink.x, sink.y)
+            force = 10.0 * (sink.mass / particle.distance ** 2.0)
+            particle.find_direction(sink.x, sink.y)
+            particle.vx += particle.dx * force
+            particle.vy += particle.dy * force
+
+    for particle in particle_pool:
+        if particle.out_of_borders(width, height, sinks):
+            particle_pool.remove(particle)
+            continue
+        pygame.draw.line(screen, BLACK, (particle.x, particle.y), (particle.x + (particle.vx * 5), particle.y + (particle.vy * 5)), 2)
+        particle.add_velocity()
+
+    for sink in sinks:
+        pygame.draw.circle(screen, RED, (int(sink.x), int(sink.y)), sink.mass, 1)
+        sink.add_velocity()
+        sink.out_of_borders(width, height)
+
 
     pygame.display.update()
